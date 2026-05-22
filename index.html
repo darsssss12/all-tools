@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pro-Tool All-in-One | Daris Rifaldi</title>
+    
+    <!-- Library di-load dari CDN (Akan di-cache oleh Service Worker) -->
+    <script src="https://unpkg.com/tesseract.js@v2.1.0/dist/tesseract.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
+
+    <style>
+        :root { 
+            --primary: #2563eb; 
+            --secondary: #3b82f6;
+            --dark: #0f172a; 
+            --light: #f8fafc; 
+            --text: #334155;
+        }
+
+        body { 
+            font-family: 'Inter', system-ui, sans-serif; 
+            background: var(--light); 
+            margin: 0; 
+            display: flex; 
+            color: var(--text);
+        }
+        
+        /* Sidebar Navigation */
+        .sidebar { 
+            width: 260px; 
+            background: var(--dark); 
+            color: white; 
+            height: 100vh; 
+            position: fixed; 
+            box-shadow: 4px 0 10px rgba(0,0,0,0.1);
+        }
+        
+        .sidebar h2 { 
+            padding: 25px 20px; 
+            font-size: 1.1rem; 
+            margin: 0;
+            background: rgba(255,255,255,0.05);
+            text-align: center;
+            letter-spacing: 1px;
+        }
+
+        .menu-item { 
+            padding: 16px 20px; 
+            cursor: pointer; 
+            transition: all 0.2s; 
+            border-left: 4px solid transparent;
+            font-size: 0.95rem;
+        }
+
+        .menu-item:hover { 
+            background: var(--secondary); 
+            border-left: 4px solid white;
+        }
+
+        .menu-item.active {
+            background: var(--primary);
+            border-left: 4px solid #60a5fa;
+        }
+
+        /* Main Area */
+        .main { 
+            margin-left: 260px; 
+            padding: 40px; 
+            width: calc(100% - 260px); 
+            min-height: 100vh;
+        }
+
+        .card { 
+            background: white; 
+            padding: 35px; 
+            border-radius: 16px; 
+            box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1);
+            max-width: 800px;
+            margin: auto;
+        }
+
+        .hidden { display: none; }
+
+        h3 { margin-top: 0; color: var(--dark); font-size: 1.5rem; }
+        p { color: #64748b; line-height: 1.6; }
+
+        input[type="file"], textarea { 
+            width: 100%; 
+            padding: 12px; 
+            border: 2px dashed #cbd5e1; 
+            border-radius: 8px; 
+            margin-top: 20px;
+            box-sizing: border-box;
+        }
+
+        button { 
+            background: var(--primary); 
+            color: white; 
+            border: none; 
+            padding: 14px 24px; 
+            border-radius: 8px; 
+            font-weight: 600; 
+            cursor: pointer; 
+            width: 100%; 
+            margin-top: 15px;
+            transition: transform 0.1s;
+        }
+
+        button:active { transform: scale(0.98); }
+
+        #output { 
+            margin-top: 25px; 
+            background: #f1f5f9; 
+            padding: 20px; 
+            border-radius: 8px; 
+            white-space: pre-wrap; 
+            border: 1px solid #e2e8f0;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .sidebar { width: 70px; }
+            .sidebar h2, .menu-item span { display: none; }
+            .main { margin-left: 70px; width: calc(100% - 70px); padding: 20px; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="sidebar">
+        <h2>DARIS TOOLS</h2>
+        <div class="menu-item active" onclick="showTab('ocr', this)">🔍 <span>Offline OCR</span></div>
+        <div class="menu-item" onclick="showTab('imgComp', this)">🖼 <span>Kompres Gambar</span></div>
+        <div class="menu-item" onclick="showTab('wordPdf', this)">📄 <span>Word to PDF</span></div>
+        <div class="menu-item" onclick="showTab('pdfWord', this)">📂 <span>PDF to Text</span></div>
+    </div>
+
+    <div class="main">
+        <!-- OCR Tab -->
+        <div id="ocr" class="tab-content card">
+            <h3>🔍 Offline OCR</h3>
+            <p>Ekstrak teks dari gambar secara langsung di perangkat Anda tanpa internet.</p>
+            <input type="file" id="ocrInput" accept="image/*">
+            <button onclick="runOCR()">Mulai Proses OCR</button>
+            <div id="ocrStatus" style="margin-top:10px; font-weight:bold; color:var(--primary);"></div>
+            <div id="output">Teks hasil pemindaian akan muncul di sini...</div>
+        </div>
+
+        <!-- Image Comp Tab -->
+        <div id="imgComp" class="tab-content card hidden">
+            <h3>🖼 Image Compressor</h3>
+            <p>Perkecil ukuran file gambar JPG/PNG secara instan dengan menjaga kualitas.</p>
+            <input type="file" id="imgInput" accept="image/*">
+            <button onclick="compressImage()">Kompres & Simpan</button>
+        </div>
+
+        <!-- Word to PDF Tab -->
+        <div id="wordPdf" class="tab-content card hidden">
+            <h3>📄 Word to PDF</h3>
+            <p>Ubah catatan teks Anda menjadi file PDF profesional siap cetak.</p>
+            <textarea id="wordText" rows="12" placeholder="Ketik atau tempel teks dokumen di sini..."></textarea>
+            <button onclick="convertToPDF()">Download Dokumen PDF</button>
+        </div>
+
+        <!-- PDF to Word Tab -->
+        <div id="pdfWord" class="tab-content card hidden">
+            <h3>📂 PDF to Text</h3>
+            <p>Ekstrak isi teks dari dokumen PDF untuk diedit kembali.</p>
+            <input type="file" id="pdfInput" accept="application/pdf">
+            <button onclick="extractPDF()">Baca Teks PDF</button>
+            <div id="pdfOutput" style="margin-top:20px; padding:15px; background:#f1f5f9; border-radius:8px;"></div>
+        </div>
+    </div>
+
+    <script>
+        // Tab Navigation
+        function showTab(tabId, el) {
+            document.querySelectorAll('.tab-content').forEach(t => t.classList.add('hidden'));
+            document.querySelectorAll('.menu-item').forEach(m => m.classList.remove('active'));
+            document.getElementById(tabId).classList.remove('hidden');
+            el.classList.add('active');
+        }
+
+        // OCR Logic
+        async function runOCR() {
+            const file = document.getElementById('ocrInput').files[0];
+            if (!file) return alert('Pilih gambar terlebih dahulu!');
+            
+            const status = document.getElementById('ocrStatus');
+            const output = document.getElementById('output');
+            status.innerText = "⏳ Memproses gambar (Mungkin butuh beberapa detik)...";
+            
+            try {
+                const result = await Tesseract.recognize(file, 'ind+eng');
+                output.innerText = result.data.text;
+                status.innerText = "✅ Selesai!";
+            } catch (err) {
+                status.innerText = "❌ Gagal memproses gambar.";
+                console.error(err);
+            }
+        }
+
+        // Image Compressor
+        function compressImage() {
+            const file = document.getElementById('imgInput').files[0];
+            if (!file) return alert('Pilih gambar!');
+            
+            const reader = new FileReader();
+            reader.readAsDataURL(file);
+            reader.onload = (e) => {
+                const img = new Image();
+                img.src = e.target.result;
+                img.onload = () => {
+                    const canvas = document.createElement('canvas');
+                    const ctx = canvas.getContext('2d');
+                    // Resize to 80%
+                    canvas.width = img.width * 0.8;
+                    canvas.height = img.height * 0.8;
+                    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                    
+                    const link = document.createElement('a');
+                    link.download = 'compressed_daris.jpg';
+                    link.href = canvas.toDataURL('image/jpeg', 0.6); // Quality 60%
+                    link.click();
+                }
+            }
+        }
+
+        // PDF Generator
+        function convertToPDF() {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            const text = document.getElementById('wordText').value;
+            if(!text) return alert('Teks kosong!');
+            
+            const splitText = doc.splitTextToSize(text, 180);
+            doc.text(splitText, 10, 10);
+            doc.save("dokumen_konversi.pdf");
+        }
+
+        // Service Worker Registration
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./sw.js')
+                .then(reg => console.log('Offline Mode Aktif!'))
+                .catch(err => console.log('SW Gagal:', err));
+            });
+        }
+    </script>
+</body>
+</html>
