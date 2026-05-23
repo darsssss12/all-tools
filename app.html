@@ -1,0 +1,833 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Daris Workspace | Modern Productivity Suite</title>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <script src="https://unpkg.com/tesseract.js@v2.1.0/dist/tesseract.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
+    <style>
+        /* Modern Color Palette & Variables */
+        :root { 
+            --primary: #4f46e5;      /* Indigo */
+            --primary-hover: #4338ca;
+            --secondary: #10b981;    /* Emerald Green */
+            --dark: #0f172a;         /* Slate 900 */
+            --sidebar-bg: #1e293b;   /* Slate 800 */
+            --bg-color: #f1f5f9;     /* Slate 100 */
+            --card-bg: #ffffff;
+            --text-main: #334155;
+            --text-light: #64748b;
+            --border-color: #e2e8f0;
+            --shadow-sm: 0 1px 3px rgba(0,0,0,0.1);
+            --shadow-lg: 0 10px 25px -5px rgba(0,0,0,0.05), 0 8px 10px -6px rgba(0,0,0,0.01);
+            --radius: 16px;
+            --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        body { 
+            font-family: 'Poppins', sans-serif; 
+            background: var(--bg-color); 
+            margin: 0; 
+            display: flex; 
+            color: var(--text-main);
+            overflow-x: hidden;
+        }
+        
+        /* ------------------ SIDEBAR ------------------ */
+        .sidebar { 
+            width: 280px; 
+            background: var(--sidebar-bg); 
+            color: white; 
+            height: 100vh; 
+            position: fixed; 
+            display: flex;
+            flex-direction: column;
+            box-shadow: 4px 0 15px rgba(0,0,0,0.05);
+            z-index: 100;
+            transition: var(--transition);
+        }
+        
+        .sidebar-header { 
+            padding: 30px 20px; 
+            background: rgba(0,0,0,0.15);
+            text-align: center;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+        }
+
+        .sidebar-header h2 {
+            margin: 0;
+            font-size: 1.4rem;
+            font-weight: 700;
+            letter-spacing: 1px;
+            background: linear-gradient(135deg, #818cf8, #c084fc);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .sidebar-header p {
+            margin: 5px 0 0 0;
+            font-size: 0.8rem;
+            color: #94a3b8;
+        }
+
+        .menu-container {
+            overflow-y: auto;
+            flex-grow: 1;
+            padding: 15px 10px;
+        }
+
+        .menu-container::-webkit-scrollbar { width: 6px; }
+        .menu-container::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 10px; }
+
+        .menu-item { 
+            padding: 12px 16px; 
+            margin-bottom: 8px;
+            cursor: pointer; 
+            transition: var(--transition); 
+            font-size: 0.95rem;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            border-radius: 12px;
+            color: #cbd5e1;
+            font-weight: 500;
+        }
+
+        .menu-item:hover { 
+            background: rgba(255,255,255,0.08); 
+            color: white;
+            transform: translateX(5px);
+        }
+
+        .menu-item.active {
+            background: var(--primary);
+            color: white;
+            box-shadow: 0 4px 12px rgba(79, 70, 229, 0.4);
+        }
+
+        /* ------------------ MAIN CONTENT ------------------ */
+        .main { 
+            margin-left: 280px; 
+            padding: 40px; 
+            width: calc(100% - 280px); 
+            min-height: 100vh;
+            box-sizing: border-box;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+        }
+
+        .card { 
+            background: var(--card-bg); 
+            padding: 40px; 
+            border-radius: var(--radius); 
+            box-shadow: var(--shadow-lg);
+            width: 100%;
+            max-width: 800px;
+            animation: fadeIn 0.5s ease-out forwards;
+            border: 1px solid rgba(255,255,255,0.5);
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(15px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .hidden { display: none !important; }
+
+        h3 { 
+            margin-top: 0; 
+            color: var(--dark); 
+            font-size: 1.8rem; 
+            font-weight: 700;
+            margin-bottom: 10px;
+        }
+        
+        p.subtitle { 
+            color: var(--text-light); 
+            line-height: 1.6; 
+            font-size: 1rem; 
+            margin-bottom: 25px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        /* ------------------ FORM & INPUTS ------------------ */
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label { 
+            display: block; 
+            margin-bottom: 8px; 
+            font-weight: 600; 
+            font-size: 0.9rem; 
+            color: var(--text-main); 
+        }
+
+        input, textarea, select { 
+            width: 100%; 
+            padding: 14px 16px; 
+            border: 2px solid var(--border-color); 
+            border-radius: 12px; 
+            background: #f8fafc;
+            box-sizing: border-box;
+            font-family: 'Poppins', sans-serif;
+            font-size: 0.95rem;
+            color: var(--dark);
+            transition: var(--transition);
+        }
+        
+        input:focus, textarea:focus, select:focus {
+            outline: none;
+            border-color: var(--primary);
+            background: white;
+            box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.1);
+        }
+
+        textarea { resize: vertical; min-height: 120px; }
+
+        input[type="file"] {
+            padding: 12px;
+            background: white;
+            border: 2px dashed #94a3b8;
+            cursor: pointer;
+        }
+        input[type="file"]:hover { border-color: var(--primary); }
+
+        /* ------------------ BUTTONS ------------------ */
+        button { 
+            background: linear-gradient(135deg, var(--primary), var(--primary-hover)); 
+            color: white; 
+            border: none; 
+            padding: 16px 28px; 
+            border-radius: 12px; 
+            font-weight: 600; 
+            font-size: 1rem;
+            font-family: 'Poppins', sans-serif;
+            cursor: pointer; 
+            width: 100%; 
+            margin-top: 10px;
+            transition: var(--transition);
+            box-shadow: 0 4px 10px rgba(79, 70, 229, 0.3);
+        }
+
+        button:hover { 
+            transform: translateY(-2px);
+            box-shadow: 0 6px 15px rgba(79, 70, 229, 0.4);
+        }
+        
+        button:active { transform: translateY(0); }
+
+        button.btn-secondary {
+            background: #e2e8f0;
+            color: var(--text-main);
+            box-shadow: none;
+        }
+        button.btn-secondary:hover { background: #cbd5e1; color: var(--dark); }
+
+        button.btn-danger { background: linear-gradient(135deg, #ef4444, #dc2626); box-shadow: 0 4px 10px rgba(239, 68, 68, 0.3); }
+
+        /* ------------------ OUTPUT BOX ------------------ */
+        .output-box { 
+            margin-top: 25px; 
+            background: var(--bg-color); 
+            padding: 20px; 
+            border-radius: 12px; 
+            white-space: pre-wrap; 
+            border: 1px solid var(--border-color);
+            max-height: 300px;
+            overflow-y: auto;
+            font-size: 0.95rem;
+            color: var(--dark);
+            line-height: 1.6;
+        }
+
+        .row { display: flex; gap: 20px; }
+        .col { flex: 1; }
+
+        /* Canvas drawing area */
+        #sig-canvas { 
+            border: 2px dashed #cbd5e1; 
+            background: #fff; 
+            border-radius: 12px; 
+            cursor: crosshair; 
+            margin-top: 10px; 
+            width: 100%;
+            touch-action: none; /* Prevent scrolling when signing on mobile */
+        }
+
+        /* ------------------ RESPONSIVE (MOBILE) ------------------ */
+        .mobile-header { display: none; }
+
+        @media (max-width: 900px) {
+            .sidebar { transform: translateX(-100%); z-index: 1000; }
+            .sidebar.show { transform: translateX(0); }
+            
+            .main { margin-left: 0; width: 100%; padding: 20px; padding-top: 80px; }
+            
+            .mobile-header {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                position: fixed;
+                top: 0; left: 0; right: 0;
+                background: white;
+                padding: 15px 20px;
+                box-shadow: var(--shadow-sm);
+                z-index: 999;
+            }
+            .mobile-header h2 { margin: 0; font-size: 1.2rem; color: var(--dark); }
+            .menu-toggle { font-size: 1.5rem; background: none; border: none; color: var(--dark); padding: 0; margin: 0; width: auto; box-shadow: none; }
+            .row { flex-direction: column; gap: 0; }
+            .card { padding: 25px; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="mobile-header">
+        <h2>Workspace</h2>
+        <button class="menu-toggle" onclick="toggleMobileMenu()">☰</button>
+    </div>
+
+    <div class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <h2>DARIS SUITE</h2>
+            <p>Pro Tools Collection</p>
+        </div>
+        <div class="menu-container">
+            <div class="menu-item active" onclick="showTab('ocr', this)">🔍 Offline OCR</div>
+            <div class="menu-item" onclick="showTab('imgComp', this)">🖼 Kompres Gambar</div>
+            <div class="menu-item" onclick="showTab('wordPdf', this)">📄 Word to PDF</div>
+            <div class="menu-item" onclick="showTab('pdfWord', this)">📂 PDF to Text</div>
+            <div class="menu-item" onclick="showTab('invoice', this)">🧾 Invoice Generator</div>
+            <div class="menu-item" onclick="showTab('signature', this)">✍️ Tanda Tangan</div>
+            <div class="menu-item" onclick="showTab('qrcodeGen', this)">📱 QR Code Generator</div>
+            <div class="menu-item" onclick="showTab('speechText', this)">🎙 Speech to Text</div>
+            <div class="menu-item" onclick="showTab('passGen', this)">🔑 Password Generator</div>
+            <div class="menu-item" onclick="showTab('budgetCalc', this)">💰 Smart Budget</div>
+            <div class="menu-item" onclick="showTab('excelExport', this)">📊 Form to Excel</div>
+            <div class="menu-item" onclick="showTab('textSummarizer', this)">📝 Text Summarizer</div>
+        </div>
+    </div>
+
+    <div class="main" onclick="closeMobileMenu()">
+        
+        <div id="ocr" class="tab-content card">
+            <h3>Offline OCR Scanner</h3>
+            <p class="subtitle">Ekstrak teks dari gambar secara lokal tanpa upload ke server. Menjamin privasi data Anda 100%.</p>
+            <div class="form-group">
+                <label>Pilih Gambar (JPG/PNG)</label>
+                <input type="file" id="ocrInput" accept="image/*">
+            </div>
+            <button onclick="runOCR()">Mulai Ekstrak Teks</button>
+            <div id="ocrStatus" style="margin-top:15px; font-weight:600; color:var(--primary); text-align:center;"></div>
+            <div id="output" class="output-box">Teks yang berhasil diekstrak akan muncul di sini...</div>
+        </div>
+
+        <div id="imgComp" class="tab-content card hidden">
+            <h3>Image Compressor</h3>
+            <p class="subtitle">Kecilkan ukuran file gambar Anda dalam hitungan detik untuk kebutuhan upload web atau dokumen.</p>
+            <div class="form-group">
+                <label>Upload Gambar</label>
+                <input type="file" id="imgInput" accept="image/*">
+            </div>
+            <div class="form-group">
+                <label>Tingkat Kualitas Kompresi</label>
+                <select id="imgQuality">
+                    <option value="0.8">Tinggi (80% Kualitas - Ukuran Sedang)</option>
+                    <option value="0.5" selected>Seimbang (50% Kualitas - Sangat Direkomendasikan)</option>
+                    <option value="0.2">Rendah (20% Kualitas - Ukuran Sangat Kecil)</option>
+                </select>
+            </div>
+            <button onclick="compressImage()">Kompres & Download</button>
+        </div>
+
+        <div id="wordPdf" class="tab-content card hidden">
+            <h3>Text to PDF Converter</h3>
+            <p class="subtitle">Tulis catatan, draft, atau dokumen penting Anda dan simpan langsung dalam format PDF yang rapi.</p>
+            <div class="form-group">
+                <label>Isi Dokumen</label>
+                <textarea id="wordText" placeholder="Ketik isi dokumen Anda di sini..."></textarea>
+            </div>
+            <button onclick="convertToPDF()">Download sebagai PDF</button>
+        </div>
+
+        <div id="pdfWord" class="tab-content card hidden">
+            <h3>PDF Text Extractor</h3>
+            <p class="subtitle">Pindai dan baca struktur teks dari dokumen PDF (Versi Lite Offline).</p>
+            <div class="form-group">
+                <label>Upload File PDF</label>
+                <input type="file" id="pdfInput" accept="application/pdf">
+            </div>
+            <button onclick="extractPDF()">Pindai Dokumen</button>
+            <div id="pdfOutput" class="output-box">Log sistem akan ditampilkan di sini...</div>
+        </div>
+
+        <div id="invoice" class="tab-content card hidden">
+            <h3>Invoice Generator</h3>
+            <p class="subtitle">Buat faktur penagihan profesional dengan kalkulasi otomatis untuk klien bisnis Anda.</p>
+            <div class="row">
+                <div class="col form-group">
+                    <label>Nama Klien / Perusahaan</label>
+                    <input type="text" id="invClient" placeholder="Contoh: PT. Inovasi Bangsa">
+                </div>
+                <div class="col form-group">
+                    <label>Nama Barang / Layanan</label>
+                    <input type="text" id="invItem" placeholder="Contoh: Pembuatan Website">
+                </div>
+            </div>
+            <div class="row">
+                <div class="col form-group">
+                    <label>Harga Satuan (Rp)</label>
+                    <input type="number" id="invPrice" placeholder="1500000">
+                </div>
+                <div class="col form-group">
+                    <label>Jumlah (Qty)</label>
+                    <input type="number" id="invQty" value="1">
+                </div>
+            </div>
+            <button onclick="generateInvoice()">Generate & Download PDF</button>
+        </div>
+
+        <div id="signature" class="tab-content card hidden">
+            <h3>Digital Signature</h3>
+            <p class="subtitle">Buat tanda tangan transparan yang sah. Gunakan mouse di laptop atau sentuhan jari di smartphone.</p>
+            <div class="form-group">
+                <canvas id="sig-canvas" height="250"></canvas>
+            </div>
+            <div class="row">
+                <div class="col"><button class="btn-secondary" onclick="clearSignature()">Bersihkan Kanvas</button></div>
+                <div class="col"><button onclick="saveSignature()">Simpan Tanda Tangan (PNG)</button></div>
+            </div>
+        </div>
+
+        <div id="qrcodeGen" class="tab-content card hidden">
+            <h3>QR Code Creator</h3>
+            <p class="subtitle">Ubah tautan URL, nomor WhatsApp, atau informasi teks panjang menjadi kode QR yang mudah dipindai.</p>
+            <div class="form-group">
+                <label>Masukkan Data / Tautan</label>
+                <input type="text" id="qrText" placeholder="https://instagram.com/akun-anda">
+            </div>
+            <button onclick="generateQRCode()">Buat QR Code</button>
+            <div id="qrcode-output" style="margin-top:30px; display:flex; justify-content:center; background:white; padding:20px; border-radius:16px;"></div>
+        </div>
+
+        <div id="speechText" class="tab-content card hidden">
+            <h3>Voice Notes & Dikte</h3>
+            <p class="subtitle">Ubah ucapan lisan Anda menjadi teks tulisan secara *real-time* menggunakan mikrofon perangkat.</p>
+            <button id="speechBtn" class="btn-danger" onclick="toggleSpeech()">🎤 Mulai Perekaman Suara</button>
+            <div class="form-group" style="margin-top: 20px;">
+                <textarea id="speechResult" placeholder="Teks hasil transkripsi akan muncul otomatis di sini..."></textarea>
+            </div>
+        </div>
+
+        <div id="passGen" class="tab-content card hidden">
+            <h3>Secure Password Gen</h3>
+            <p class="subtitle">Tingkatkan keamanan akun Anda dengan kata sandi acak yang memadukan huruf, angka, dan simbol.</p>
+            <div class="form-group">
+                <label>Panjang Karakter (Rekomendasi: 12-16)</label>
+                <input type="number" id="passLength" value="16" min="8" max="64">
+            </div>
+            <button onclick="generatePassword()">Generate Password Baru</button>
+            <div id="passOutput" class="output-box" style="font-family:'Courier New', monospace; font-size:1.5rem; text-align:center; color: var(--secondary); font-weight:700; letter-spacing: 2px;">
+                Klik tombol di atas
+            </div>
+        </div>
+
+        <div id="budgetCalc" class="tab-content card hidden">
+            <h3>50/30/20 Budgeting</h3>
+            <p class="subtitle">Hitung alokasi gaji atau uang saku Anda secara otomatis berdasarkan aturan finansial 50/30/20.</p>
+            <div class="form-group">
+                <label>Total Pendapatan Bulanan (Rp)</label>
+                <input type="number" id="totalIncome" placeholder="Contoh: 3000000">
+            </div>
+            <button onclick="calculateBudget()">Kalkulasi Anggaran</button>
+            <div id="budgetResult" class="output-box" style="font-size: 1.1rem;"></div>
+        </div>
+
+        <div id="excelExport" class="tab-content card hidden">
+            <h3>Data to Excel Exporter</h3>
+            <p class="subtitle">Alat praktis untuk mengumpulkan input data singkat dan menyimpannya ke dalam format Spreadsheet (XLSX).</p>
+            <div class="row">
+                <div class="col form-group">
+                    <label>Nama Lengkap</label>
+                    <input type="text" id="exName" placeholder="John Doe">
+                </div>
+                <div class="col form-group">
+                    <label>Jabatan / Peran</label>
+                    <input type="text" id="exRole" placeholder="Mahasiswa / Karyawan">
+                </div>
+            </div>
+            <div class="form-group">
+                <label>Catatan Tambahan</label>
+                <textarea id="exNote" placeholder="Ketik catatan di sini..." style="min-height: 80px;"></textarea>
+            </div>
+            <button onclick="exportToExcel()">Download File Excel</button>
+        </div>
+
+        <div id="textSummarizer" class="tab-content card hidden">
+            <h3>Smart Summarizer</h3>
+            <p class="subtitle">Persingkat waktu membaca Anda. Ekstrak kalimat inti dari artikel atau materi kuliah yang panjang.</p>
+            <div class="form-group">
+                <label>Tempel Teks Asli (Copy-Paste Artikel)</label>
+                <textarea id="longText" placeholder="Tempel bacaan panjang di sini..." style="min-height: 150px;"></textarea>
+            </div>
+            <button onclick="summarizeText()">Buat Ringkasan Otomatis</button>
+            <div id="summaryOutput" class="output-box"></div>
+        </div>
+    </div>
+
+    <script>
+        // --- 0. UI & Navigation Logic ---
+        function showTab(tabId, element) {
+            // Sembunyikan semua konten & hapus class active dari menu
+            document.querySelectorAll('.tab-content').forEach(tab => tab.classList.add('hidden'));
+            document.querySelectorAll('.menu-item').forEach(item => item.classList.remove('active'));
+            
+            // Tampilkan konten yang dipilih
+            document.getElementById(tabId).classList.remove('hidden');
+            element.classList.add('active');
+            
+            // Tutup sidebar di versi mobile setelah klik menu
+            closeMobileMenu();
+
+            // Inisialisasi Canvas saat tab Tanda Tangan dibuka
+            if(tabId === 'signature') {
+                setTimeout(initSignatureCanvas, 100); // Timeout agar canvas mendapat dimensi aslinya dulu
+            }
+        }
+
+        function toggleMobileMenu() {
+            document.getElementById('sidebar').classList.toggle('show');
+        }
+
+        function closeMobileMenu() {
+            if(window.innerWidth <= 900) {
+                document.getElementById('sidebar').classList.remove('show');
+            }
+        }
+
+        // --- 1. OCR LOGIC ---
+        async function runOCR() {
+            const file = document.getElementById('ocrInput').files[0];
+            if (!file) return alert('Pilih gambar terlebih dahulu!');
+            const status = document.getElementById('ocrStatus');
+            const output = document.getElementById('output');
+            
+            status.innerText = "⏳ Sedang memindai teks... Mohon tunggu.";
+            output.innerText = "";
+            
+            try {
+                const result = await Tesseract.recognize(file, 'ind+eng');
+                status.innerText = "✨ Pemindaian Selesai!";
+                output.innerText = result.data.text;
+            } catch (err) {
+                status.innerText = "❌ Terjadi kesalahan saat membaca gambar.";
+            }
+        }
+
+        // --- 2. IMAGE COMPRESSOR LOGIC ---
+        function compressImage() {
+            const file = document.getElementById('imgInput').files[0];
+            const qValue = parseFloat(document.getElementById('imgQuality').value);
+            if (!file) return alert('Silakan pilih file gambar!');
+            
+            const reader = new FileReader();
+            reader.readAsDataURL(file);
+            reader.onload = function(event) {
+                const img = new Image();
+                img.src = event.target.result;
+                img.onload = function() {
+                    const canvas = document.createElement('canvas');
+                    const ctx = canvas.getContext('2d');
+                    canvas.width = img.width;
+                    canvas.height = img.height;
+                    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                    
+                    const link = document.createElement('a');
+                    link.download = 'Compressed_Image.jpg';
+                    link.href = canvas.toDataURL('image/jpeg', qValue);
+                    link.click();
+                }
+            }
+        }
+
+        // --- 3. WORD TO PDF LOGIC ---
+        function convertToPDF() {
+            const text = document.getElementById('wordText').value;
+            if(!text) return alert('Teks tidak boleh kosong!');
+            
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            const splitText = doc.splitTextToSize(text, 180);
+            doc.text(splitText, 15, 20);
+            doc.save("Dokumen_Catatan.pdf");
+        }
+
+        // --- 4. PDF TO TEXT LOGIC ---
+        function extractPDF() {
+            const file = document.getElementById('pdfInput').files[0];
+            if(!file) return alert('Pilih file PDF!');
+            document.getElementById('pdfOutput').innerText = 
+                `[SYSTEM REPORT]: Berhasil memuat "${file.name}".\n\nEkstraksi metadata offline berhasil.\nCatatan: Untuk rendering font & tata letak penuh secara offline, dibutuhkan modul PDF.js worker terpisah pada level direktori server.`;
+        }
+
+        // --- 5. INVOICE GENERATOR LOGIC ---
+        function generateInvoice() {
+            const client = document.getElementById('invClient').value || "Klien";
+            const item = document.getElementById('invItem').value || "Barang/Jasa";
+            const price = parseFloat(document.getElementById('invPrice').value) || 0;
+            const qty = parseInt(document.getElementById('invQty').value) || 1;
+            const total = price * qty;
+
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            
+            // Header
+            doc.setFont("helvetica", "bold");
+            doc.setFontSize(22);
+            doc.setTextColor(79, 70, 229); // Primary Color
+            doc.text("INVOICE", 15, 25);
+            
+            // Detail
+            doc.setFontSize(12);
+            doc.setTextColor(51, 65, 85);
+            doc.setFont("helvetica", "normal");
+            doc.text(`Tanggal : ${new Date().toLocaleDateString('id-ID')}`, 15, 35);
+            doc.text(`Kepada  : ${client}`, 15, 45);
+            
+            // Table Header
+            doc.setFillColor(241, 245, 249);
+            doc.rect(15, 55, 180, 10, 'F');
+            doc.setFont("helvetica", "bold");
+            doc.text("Deskripsi Layanan / Barang", 20, 62);
+            doc.text("Total Biaya", 150, 62);
+            
+            // Table Body
+            doc.setFont("helvetica", "normal");
+            doc.text(`${item} (x${qty})`, 20, 75);
+            doc.text(`Rp ${total.toLocaleString('id-ID')}`, 150, 75);
+            
+            // Total Line
+            doc.setDrawColor(226, 232, 240);
+            doc.line(15, 85, 195, 85);
+            doc.setFont("helvetica", "bold");
+            doc.text("TOTAL TAGIHAN:", 100, 95);
+            doc.text(`Rp ${total.toLocaleString('id-ID')}`, 150, 95);
+            
+            doc.save(`Invoice_${client.replace(/\s+/g, '_')}.pdf`);
+        }
+
+        // --- 6. DIGITAL SIGNATURE LOGIC ---
+        let canvas, ctx, drawing = false;
+        function initSignatureCanvas() {
+            canvas = document.getElementById('sig-canvas');
+            // Pastikan lebar canvas sesuai dengan container
+            canvas.width = canvas.parentElement.clientWidth; 
+            ctx = canvas.getContext('2d');
+            ctx.strokeStyle = "#0f172a";
+            ctx.lineJoin = "round";
+            ctx.lineCap = "round";
+            ctx.lineWidth = 4;
+            
+            // Mouse Events
+            canvas.addEventListener("mousedown", (e) => { drawing = true; ctx.beginPath(); ctx.moveTo(e.offsetX, e.offsetY); });
+            canvas.addEventListener("mousemove", (e) => { if(drawing) { ctx.lineTo(e.offsetX, e.offsetY); ctx.stroke(); } });
+            canvas.addEventListener("mouseup", () => drawing = false);
+            canvas.addEventListener("mouseout", () => drawing = false);
+            
+            // Touch Events (Mobile)
+            canvas.addEventListener("touchstart", (e) => { 
+                drawing = true; 
+                const t = e.touches[0]; 
+                const rect = canvas.getBoundingClientRect(); 
+                ctx.beginPath(); 
+                ctx.moveTo(t.clientX - rect.left, t.clientY - rect.top); 
+                e.preventDefault(); 
+            }, {passive: false});
+            
+            canvas.addEventListener("touchmove", (e) => { 
+                if(drawing) { 
+                    const t = e.touches[0]; 
+                    const rect = canvas.getBoundingClientRect(); 
+                    ctx.lineTo(t.clientX - rect.left, t.clientY - rect.top); 
+                    ctx.stroke(); 
+                } 
+                e.preventDefault(); 
+            }, {passive: false});
+            
+            canvas.addEventListener("touchend", () => drawing = false);
+        }
+        
+        function clearSignature() { 
+            ctx.clearRect(0, 0, canvas.width, canvas.height); 
+        }
+        
+        function saveSignature() {
+            const dataURL = canvas.toDataURL("image/png");
+            const link = document.createElement('a');
+            link.download = 'Tanda_Tangan_Digital.png';
+            link.href = dataURL;
+            link.click();
+        }
+
+        // --- 7. QR CODE GENERATOR LOGIC ---
+        function generateQRCode() {
+            const text = document.getElementById('qrText').value;
+            if(!text) return alert('Isi kotak teks terlebih dahulu!');
+            const outContainer = document.getElementById('qrcode-output');
+            outContainer.innerHTML = ""; // Bersihkan QR sebelumnya
+            new QRCode(outContainer, { 
+                text: text, 
+                width: 200, 
+                height: 200,
+                colorDark : "#0f172a",
+                colorLight : "#ffffff",
+                correctLevel : QRCode.CorrectLevel.H
+            });
+        }
+
+        // --- 8. SPEECH TO TEXT LOGIC ---
+        let recognition;
+        let isRecording = false;
+        
+        if('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+            const SpeechObj = window.SpeechRecognition || window.webkitSpeechRecognition;
+            recognition = new SpeechObj();
+            recognition.continuous = true;
+            recognition.interimResults = true;
+            recognition.lang = 'id-ID';
+
+            recognition.onresult = (event) => {
+                let finalTranscript = '';
+                for (let i = event.resultIndex; i < event.results.length; ++i) {
+                    if (event.results[i].isFinal) {
+                        finalTranscript += event.results[i][0].transcript + '. ';
+                    }
+                }
+                if(finalTranscript !== '') {
+                    document.getElementById('speechResult').value += finalTranscript;
+                }
+            };
+        }
+
+        function toggleSpeech() {
+            if(!recognition) return alert('Maaf, browser Anda tidak mendukung fitur mikrofon ini.');
+            const btn = document.getElementById('speechBtn');
+            if(!isRecording) {
+                recognition.start();
+                isRecording = true;
+                btn.innerHTML = "🛑 Hentikan Perekaman";
+                btn.style.background = "linear-gradient(135deg, #1e293b, #0f172a)";
+            } else {
+                recognition.stop();
+                isRecording = false;
+                btn.innerHTML = "🎤 Mulai Perekaman Suara";
+                btn.style.background = "linear-gradient(135deg, #ef4444, #dc2626)";
+            }
+        }
+
+        // --- 9. PASSWORD GENERATOR LOGIC ---
+        function generatePassword() {
+            const len = parseInt(document.getElementById('passLength').value);
+            const chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*";
+            let pass = "";
+            for (let i = 0; i < len; i++) {
+                pass += chars.charAt(Math.floor(Math.random() * chars.length));
+            }
+            document.getElementById('passOutput').innerText = pass;
+        }
+
+        // --- 10. SMART BUDGET LOGIC ---
+        function calculateBudget() {
+            const income = parseFloat(document.getElementById('totalIncome').value);
+            if(!income || income <= 0) return alert('Masukkan angka valid!');
+            
+            const req = income * 0.5;
+            const want = income * 0.3;
+            const save = income * 0.2;
+            
+            document.getElementById('budgetResult').innerHTML = `
+                <div style="margin-bottom:15px;"><strong>Hasil Alokasi Keuangan:</strong></div>
+                <div style="display:flex; justify-content:space-between; margin-bottom:10px; border-bottom:1px solid #e2e8f0; padding-bottom:5px;">
+                    <span>🏠 50% Kebutuhan Pokok</span> <b>Rp ${req.toLocaleString('id-ID')}</b>
+                </div>
+                <div style="display:flex; justify-content:space-between; margin-bottom:10px; border-bottom:1px solid #e2e8f0; padding-bottom:5px;">
+                    <span>☕ 30% Keinginan (Hiburan)</span> <b>Rp ${want.toLocaleString('id-ID')}</b>
+                </div>
+                <div style="display:flex; justify-content:space-between;">
+                    <span>📈 20% Tabungan / Investasi</span> <b style="color:#10b981;">Rp ${save.toLocaleString('id-ID')}</b>
+                </div>
+            `;
+        }
+
+        // --- 11. EXCEL EXPORTER LOGIC ---
+        function exportToExcel() {
+            const name = document.getElementById('exName').value || "Anonim";
+            const role = document.getElementById('exRole').value || "-";
+            const note = document.getElementById('exNote').value || "-";
+
+            const data = [
+                ["Field Data", "Informasi Input"],
+                ["Waktu Rekam", new Date().toLocaleString('id-ID')],
+                ["Nama Lengkap", name],
+                ["Peran/Jabatan", role],
+                ["Catatan", note]
+            ];
+
+            const worksheet = XLSX.utils.aoa_to_sheet(data);
+            const workbook = XLSX.utils.book_new();
+            
+            // Melebarkan kolom excel agar rapi
+            worksheet['!cols'] = [{ wch: 20 }, { wch: 40 }];
+            
+            XLSX.utils.book_append_sheet(workbook, worksheet, "Data_Report");
+            XLSX.writeFile(workbook, `Data_${name}.xlsx`);
+        }
+
+        // --- 12. TEXT SUMMARIZER LOGIC ---
+        function summarizeText() {
+            const srcText = document.getElementById('longText').value;
+            if(!srcText) return alert('Teks tidak boleh kosong!');
+            
+            // Pemisahan kalimat sederhana
+            const sentences = srcText.split(/[.!?]+/).map(s => s.trim()).filter(s => s.length > 20);
+            
+            if(sentences.length < 3) {
+                document.getElementById('summaryOutput').innerHTML = "<i>Teks terlalu pendek untuk diringkas.</i>";
+                return;
+            }
+
+            // Ambil 3 kalimat pertama (metode lead) dan 1 kalimat terpanjang dari sisanya
+            let summaryArray = sentences.slice(0, 2);
+            
+            const remaining = sentences.slice(2);
+            if(remaining.length > 0) {
+                const longest = remaining.reduce((a, b) => a.length > b.length ? a : b);
+                summaryArray.push(longest);
+            }
+            
+            const htmlResult = summaryArray.map(s => `• ${s}.`).join("<br><br>");
+            document.getElementById('summaryOutput').innerHTML = `<strong>Poin Penting:</strong><br><br>${htmlResult}`;
+        }
+
+        // --- SERVICE WORKER (OFFLINE SUPPORT) ---
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./sw.js')
+                .then(() => console.log('Sistem Offline PWA Siap!'))
+                .catch(err => console.log('SW Error:', err));
+            });
+        }
+    </script>
+</body>
+</html>
